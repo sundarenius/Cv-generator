@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta name="description" content="CV mallar online. Bästa CV byggaren. Skapa ett vinnande & ett professionellt CV på mindre än 5 minuter som arbetsgivare kommer att älska.">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <title>CVFixarn.se - Proffsiga & Snygga CV Mallar Online</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons">
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://checkout.stripe.com/checkout.js"></script>
+    <script src="https://raw.githack.com/eKoopmans/html2pdf/master/dist/html2pdf.bundle.js"></script>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but cv-app doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+
+    <div style="position:absolute;display:none">
+      <button id="payBtnPrem"></button>
+      <button id="payBtnBasic"></button>
+      <span id="theEmail"></span>
+      <button id="triggerOrderFunctions"></button>
+    </div>
+
+<script>
+  const STRIPE_PUBLIC_KEY = 'pk_live_AwMcPhCLlolpZHAeljoa4f1B00N9iJW63t';
+  const FIREBASE_FUNCTION = 'https://us-central1-cv-generator-3f4dc.cloudfunctions.net/charge/';
+  const stripe = Stripe(STRIPE_PUBLIC_KEY);
+  const elements = stripe.elements();
+  let charge_amount
+  const charge_currency = 'sek';
+  // Store the elements used
+  const elCheckoutPremium = document.querySelector('#payBtnPrem')
+  const elCheckoutBasic = document.querySelector('#payBtnBasic')
+  function addCheckoutMethod() {
+    const theEmail = document.querySelector('#theEmail').innerText
+      const handler = StripeCheckout.configure({
+          key: STRIPE_PUBLIC_KEY,
+          locale: 'auto',
+          token: async token => {
+              // Pass the received token to our Firebase function
+              let res = await charge(token, charge_amount, charge_currency);
+              if (res.body.error) console.log('something went wrong')
+              // Card successfully charged
+              document.querySelector('#triggerOrderFunctions').click()
+          }
+      });
+      elCheckoutPremium.addEventListener('click', e => {
+        charge_amount = 11900
+          e.preventDefault();
+          handler.open({
+              name: 'CVFixarn.se',
+              amount: charge_amount,
+              currency: charge_currency,
+              image: 'https://cv-generator-3f4dc.firebaseapp.com/favicon.ico',
+              email: theEmail
+          })
+      })
+      elCheckoutBasic.addEventListener('click', e => {
+        charge_amount = 4900
+          e.preventDefault();
+          handler.open({
+              name: 'CVFixarn.se',
+              amount: charge_amount,
+              currency: charge_currency,
+              image: 'https://cv-generator-3f4dc.firebaseapp.com/favicon.ico',
+              email: theEmail,
+          })
+      })
+      // Close Checkout on page navigation
+      window.addEventListener('popstate', () => handler.close());
+  }
+  async function charge(token, amount, currency) {
+      const res = await fetch(FIREBASE_FUNCTION, {
+          method: 'POST',
+          body: JSON.stringify({
+              token,
+              charge: {
+                  amount,
+                  currency,
+              },
+          }),
+      });
+      const data = await res.json();
+      data.body = JSON.parse(data.body);
+      return data;
+  }
+</script>
+</body>
+</html>
